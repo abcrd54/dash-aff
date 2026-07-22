@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { authMiddleware, adminMiddleware, getSession } from "../../middleware/auth";
-import { getAllUsers, createUser, updateUser, deleteUser, getUserByUsername } from "../../lib/db";
+import { getAllUsers, createUser, updateUser, deleteUser, getUserByUsername, getAllServices, getUserServices, assignUserService, removeUserService } from "../../lib/db";
 import UsersPage from "../../views/admin/users";
 
 const adminUserRoutes = new Hono();
@@ -8,7 +8,8 @@ const adminUserRoutes = new Hono();
 adminUserRoutes.get("/admin/users", authMiddleware, adminMiddleware, (c) => {
   const user = getSession(c)!;
   const users = getAllUsers();
-  return c.html(<UsersPage user={user} users={users} />);
+  const services = getAllServices();
+  return c.html(<UsersPage user={user} users={users} services={services} getUserServices={getUserServices} />);
 });
 
 adminUserRoutes.post("/admin/users", authMiddleware, adminMiddleware, async (c) => {
@@ -52,6 +53,21 @@ adminUserRoutes.put("/admin/users/:id", authMiddleware, adminMiddleware, async (
 adminUserRoutes.delete("/admin/users/:id", authMiddleware, adminMiddleware, (c) => {
   const id = Number(c.req.param("id"));
   deleteUser(id);
+  return c.redirect("/admin/users");
+});
+
+adminUserRoutes.post("/admin/users/:id/services", authMiddleware, adminMiddleware, async (c) => {
+  const userId = Number(c.req.param("id"));
+  const body = await c.req.parseBody();
+  const serviceId = Number(body.service_id || 0);
+  const action = String(body.action || "assign");
+
+  if (action === "assign") {
+    assignUserService(userId, serviceId);
+  } else {
+    removeUserService(userId, serviceId);
+  }
+
   return c.redirect("/admin/users");
 });
 

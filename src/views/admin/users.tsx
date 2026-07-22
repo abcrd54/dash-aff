@@ -1,14 +1,16 @@
 import type { FC } from "hono/jsx";
 import Layout from "../../components/layout";
 import type { JWTPayload } from "../../middleware/auth";
-import type { User } from "../../lib/db";
+import type { User, Service } from "../../lib/db";
 
 interface UsersPageProps {
   user: JWTPayload;
   users: User[];
+  services: Service[];
+  getUserServices: (userId: number) => number[];
 }
 
-const UsersPage: FC<UsersPageProps> = ({ user: currentUser, users }) => {
+const UsersPage: FC<UsersPageProps> = ({ user: currentUser, users, services, getUserServices }) => {
   return (
     <Layout user={currentUser} title="Manajemen User" currentPath="/admin/users">
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -29,12 +31,15 @@ const UsersPage: FC<UsersPageProps> = ({ user: currentUser, users }) => {
                 <th class="text-left px-6 py-3 text-slate-600 font-medium">ID</th>
                 <th class="text-left px-6 py-3 text-slate-600 font-medium">Username</th>
                 <th class="text-left px-6 py-3 text-slate-600 font-medium">Role</th>
+                <th class="text-left px-6 py-3 text-slate-600 font-medium">Services</th>
                 <th class="text-left px-6 py-3 text-slate-600 font-medium">Dibuat</th>
                 <th class="text-right px-6 py-3 text-slate-600 font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-              {users.map((u) => (
+              {users.map((u) => {
+                const userServiceIds = getUserServices(u.id);
+                return (
                 <tr class="hover:bg-slate-50 transition">
                   <td class="px-6 py-4 text-slate-500 font-mono text-xs">#{u.id}</td>
                   <td class="px-6 py-4 font-medium text-slate-800">{u.username}</td>
@@ -46,6 +51,23 @@ const UsersPage: FC<UsersPageProps> = ({ user: currentUser, users }) => {
                     >
                       {u.role}
                     </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex flex-wrap gap-1">
+                      {services.map(s => {
+                        const has = userServiceIds.includes(s.id);
+                        return (
+                          <form method="POST" action={`/admin/users/${u.id}/services`} class="inline">
+                            <input type="hidden" name="service_id" value={s.id} />
+                            <input type="hidden" name="action" value={has ? "remove" : "assign"} />
+                            <button class={`text-xs px-2 py-0.5 rounded ${has ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'} cursor-pointer`}>
+                              {has ? '✓ ' + s.name : s.name}
+                            </button>
+                          </form>
+                        );
+                      })}
+                      {services.length === 0 && <span class="text-slate-400 text-xs">No services</span>}
+                    </div>
                   </td>
                   <td class="px-6 py-4 text-slate-500">{u.created_at}</td>
                   <td class="px-6 py-4 text-right">
@@ -70,10 +92,10 @@ const UsersPage: FC<UsersPageProps> = ({ user: currentUser, users }) => {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
               {users.length === 0 && (
                 <tr>
-                  <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                  <td colspan="6" class="px-6 py-12 text-center text-slate-400">
                     Belum ada user terdaftar.
                   </td>
                 </tr>

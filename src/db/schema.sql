@@ -26,3 +26,33 @@ CREATE TABLE IF NOT EXISTS content (
   body TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS services (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  slug TEXT NOT NULL UNIQUE,
+  base_url TEXT NOT NULL,
+  api_key TEXT NOT NULL,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS user_services (
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  service_id INTEGER REFERENCES services(id) ON DELETE CASCADE,
+  UNIQUE(user_id, service_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_personas (
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  persona_id TEXT NOT NULL,
+  service_id INTEGER REFERENCES services(id) ON DELETE CASCADE,
+  session_id TEXT,
+  persona_name TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(persona_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_personas_user ON user_personas(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_personas_service ON user_personas(service_id);
+CREATE INDEX IF NOT EXISTS idx_user_services_user ON user_services(user_id);
