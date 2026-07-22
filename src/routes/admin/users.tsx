@@ -18,19 +18,19 @@ adminUserRoutes.post("/admin/users", authMiddleware, adminMiddleware, async (c) 
   const password = String(body.password || "");
 
   if (!username || !password || password.length < 6) {
-    return c.redirect("/admin/users");
+    return c.redirect("/admin/users?error=" + encodeURIComponent("Username dan password minimal 6 karakter"));
   }
 
   const existing = getUserByUsername(username);
   if (existing) {
-    return c.redirect("/admin/users");
+    return c.redirect("/admin/users?error=" + encodeURIComponent("Username sudah digunakan"));
   }
 
   try {
     const passwordHash = await Bun.password.hash(password, "bcrypt");
     createUser(username, passwordHash, "user");
   } catch (e) {
-    return c.redirect("/admin/users");
+    return c.redirect("/admin/users?error=" + encodeURIComponent("Gagal membuat user"));
   }
 
   return c.redirect("/admin/users");

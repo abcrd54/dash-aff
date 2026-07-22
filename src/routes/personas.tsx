@@ -75,12 +75,7 @@ personasRoutes.post("/personas/:id/delete", authMiddleware, async (c) => {
     if (!e.message?.includes("404")) return c.redirect("/personas");
   }
 
-  if (deleted) {
-    unlinkUserPersona(personaId);
-  } else {
-    unlinkUserPersona(personaId);
-  }
-
+  unlinkUserPersona(personaId);
   return c.redirect("/personas");
 });
 

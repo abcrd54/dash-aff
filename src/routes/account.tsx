@@ -1,7 +1,8 @@
 import { Hono } from "hono";
-import { authMiddleware, getSession } from "../middleware/auth";
-import { updateUser, getUserByUsername } from "../lib/db";
+import { setCookie } from "hono/cookie";
+import { authMiddleware, getSession, createToken } from "../middleware/auth";
 import type { JWTPayload } from "../middleware/auth";
+import { updateUser, getUserByUsername } from "../lib/db";
 import AccountPage from "../views/account/index";
 import ManageAccountPage from "../views/account/manage";
 
@@ -79,6 +80,20 @@ accountRoutes.post("/manage-account", authMiddleware, async (c) => {
   }
 
   updateUser(sessionUser.id, { username: newUsername });
+
+  const newToken = await createToken({
+    id: sessionUser.id,
+    username: newUsername,
+    role: sessionUser.role,
+  });
+
+  setCookie(c, "session", newToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    path: "/",
+    maxAge: 86400,
+  });
 
   const updatedUser: JWTPayload = {
     id: sessionUser.id,

@@ -99,11 +99,3 @@ export async function adminMiddleware(c: Context, next: Next) {
   }
   await next();
 }
-
-export async function userOnlyMiddleware(c: Context, next: Next) {
-  const user = c.get("user") as JWTPayload | null;
-  if (!user || user.role !== "user") {
-    return c.redirect("/dashboard");
-  }
-  await next();
-}

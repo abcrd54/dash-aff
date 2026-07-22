@@ -73,7 +73,7 @@ const UsersPage: FC<UsersPageProps> = ({ user: currentUser, users, services, get
                   <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
                       <button
-                        onclick={`openEditUser(${u.id},'${u.username}','${u.role}')`}
+                        onclick={`openEditUser(${u.id},'${u.username.replace(/'/g, "\\'")}','${u.role}')`}
                         class="text-blue-600 hover:text-blue-800 text-sm font-medium cursor-pointer"
                       >
                         Edit

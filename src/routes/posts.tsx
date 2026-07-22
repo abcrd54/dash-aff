@@ -32,13 +32,21 @@ postRoutes.post("/posts", authMiddleware, async (c) => {
     return c.redirect("/posts");
   }
 
-  createPost(title, slug, content, status, user.id);
+  try {
+    createPost(title, slug, content, status, user.id);
+  } catch (e) {
+    return c.redirect("/posts");
+  }
   return c.redirect("/posts");
 });
 
 postRoutes.put("/posts/:id", authMiddleware, async (c) => {
   const user = getSession(c)!;
   const id = Number(c.req.param("id"));
+
+  const existing = getPostById(id, user.id);
+  if (!existing) return c.redirect("/posts");
+
   const body = await c.req.parseBody();
 
   const data: { title?: string; slug?: string; body?: string; status?: string } = {};
@@ -50,12 +58,21 @@ postRoutes.put("/posts/:id", authMiddleware, async (c) => {
   if (body.body !== undefined) data.body = String(body.body);
   if (body.status) data.status = String(body.status);
 
-  updatePost(id, data);
+  try {
+    updatePost(id, data);
+  } catch (e) {
+    return c.redirect("/posts");
+  }
   return c.redirect("/posts");
 });
 
 postRoutes.delete("/posts/:id", authMiddleware, (c) => {
+  const user = getSession(c)!;
   const id = Number(c.req.param("id"));
+
+  const existing = getPostById(id, user.id);
+  if (!existing) return c.redirect("/posts");
+
   deletePost(id);
   return c.redirect("/posts");
 });
