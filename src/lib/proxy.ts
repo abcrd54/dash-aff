@@ -1,11 +1,11 @@
-import { getServiceBySlug } from "./db";
+import { getServiceBySlug } from "./config";
 
 const PROXY_TIMEOUT_MS = 30000;
 
 export function getServiceClient(slug: string) {
   const service = getServiceBySlug(slug);
-  if (!service || !service.is_active) {
-    throw new Error(`Service "${slug}" not found or inactive`);
+  if (!service) {
+    throw new Error(`Service "${slug}" not found`);
   }
 
   const makeUrl = (path: string) => `${service.base_url}${path}`;

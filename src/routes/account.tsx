@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { authMiddleware, getSession, createToken } from "../middleware/auth";
-import type { JWTPayload } from "../middleware/auth";
 import { updateUser, getUserByUsername } from "../lib/db";
 import AccountPage from "../views/account/index";
 import ManageAccountPage from "../views/account/manage";
@@ -20,28 +19,22 @@ accountRoutes.post("/account/password", authMiddleware, async (c) => {
   const newPassword = String(body.new_password || "");
 
   if (!currentPassword || !newPassword) {
-    return c.html(
-      <AccountPage user={sessionUser} error="Semua field wajib diisi." />
-    );
+    return c.redirect("/account?error=" + encodeURIComponent("Semua field wajib diisi."));
   }
 
   if (newPassword.length < 6) {
-    return c.html(
-      <AccountPage user={sessionUser} error="Password baru minimal 6 karakter." />
-    );
+    return c.redirect("/account?error=" + encodeURIComponent("Password baru minimal 6 karakter."));
   }
 
   const fullUser = getUserByUsername(sessionUser.username);
   if (!fullUser || !(await Bun.password.verify(currentPassword, fullUser.password_hash, "bcrypt"))) {
-    return c.html(<AccountPage user={sessionUser} error="Password lama salah." />);
+    return c.redirect("/account?error=" + encodeURIComponent("Password lama salah."));
   }
 
   const newHash = await Bun.password.hash(newPassword, "bcrypt");
   updateUser(sessionUser.id, { password_hash: newHash });
 
-  return c.html(
-    <AccountPage user={sessionUser} success="Password berhasil diubah!" />
-  );
+  return c.redirect("/account?success=" + encodeURIComponent("Password berhasil diubah!"));
 });
 
 accountRoutes.get("/manage-account", authMiddleware, (c) => {
@@ -56,27 +49,21 @@ accountRoutes.post("/manage-account", authMiddleware, async (c) => {
   const newUsername = String(body.username || "").trim();
 
   if (!password || !newUsername) {
-    return c.html(
-      <ManageAccountPage user={sessionUser} error="Semua field wajib diisi." />
-    );
+    return c.redirect("/manage-account?error=" + encodeURIComponent("Semua field wajib diisi."));
   }
 
   if (newUsername.length < 3) {
-    return c.html(
-      <ManageAccountPage user={sessionUser} error="Username minimal 3 karakter." />
-    );
+    return c.redirect("/manage-account?error=" + encodeURIComponent("Username minimal 3 karakter."));
   }
 
   const fullUser = getUserByUsername(sessionUser.username);
   if (!fullUser || !(await Bun.password.verify(password, fullUser.password_hash, "bcrypt"))) {
-    return c.html(<ManageAccountPage user={sessionUser} error="Password salah." />);
+    return c.redirect("/manage-account?error=" + encodeURIComponent("Password salah."));
   }
 
   const existing = getUserByUsername(newUsername);
   if (existing && existing.id !== sessionUser.id) {
-    return c.html(
-      <ManageAccountPage user={sessionUser} error="Username sudah digunakan." />
-    );
+    return c.redirect("/manage-account?error=" + encodeURIComponent("Username sudah digunakan."));
   }
 
   updateUser(sessionUser.id, { username: newUsername });
@@ -89,21 +76,13 @@ accountRoutes.post("/manage-account", authMiddleware, async (c) => {
 
   setCookie(c, "session", newToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: false,
     sameSite: "Lax",
     path: "/",
     maxAge: 86400,
   });
 
-  const updatedUser: JWTPayload = {
-    id: sessionUser.id,
-    username: newUsername,
-    role: sessionUser.role,
-  };
-
-  return c.html(
-    <ManageAccountPage user={updatedUser} success="Username berhasil diubah! Login ulang agar perubahan diterapkan." />
-  );
+  return c.redirect("/manage-account?success=" + encodeURIComponent("Username berhasil diubah!"));
 });
 
 export default accountRoutes;

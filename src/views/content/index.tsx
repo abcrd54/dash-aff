@@ -1,4 +1,5 @@
 import type { FC } from "hono/jsx";
+import { raw } from "hono/html";
 import Layout from "../../components/layout";
 import type { JWTPayload } from "../../middleware/auth";
 import type { Content } from "../../lib/db";
@@ -47,10 +48,7 @@ const ContentPage: FC<ContentPageProps> = ({ user, items }) => {
                         Edit
                       </button>
                       <button
-                        hx-delete={`/content/${c.id}`}
-                        hx-confirm={`Hapus konten "${c.title}"?`}
-                        hx-target="body"
-                        hx-swap="outerHTML"
+                        onclick={`deleteContent(${c.id})`}
                         class="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
                       >
                         Hapus
@@ -75,9 +73,8 @@ const ContentPage: FC<ContentPageProps> = ({ user, items }) => {
         <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-4 sm:p-6" onclick="event.stopPropagation()">
           <h3 class="text-lg font-semibold text-slate-800 mb-4">Tambah Konten Baru</h3>
           <form
-            hx-post="/content"
-            hx-target="body"
-            hx-swap="outerHTML"
+            method="POST"
+            action="/content"
             onsubmit="closeCreateContentModal()"
             class="space-y-4"
           >
@@ -132,10 +129,7 @@ const ContentPage: FC<ContentPageProps> = ({ user, items }) => {
           <h3 class="text-lg font-semibold text-slate-800 mb-4">Edit Konten</h3>
           <form
             id="editContentForm"
-            hx-put="/content/{id}"
-            hx-target="body"
-            hx-swap="outerHTML"
-            onsubmit="submitEditContent()"
+            onsubmit="return submitEditContent(event)"
             class="space-y-4"
           >
             <input type="hidden" id="editContentId" />
@@ -187,7 +181,7 @@ const ContentPage: FC<ContentPageProps> = ({ user, items }) => {
         </div>
       </div>
 
-      <script dangerouslySetInnerHTML={{ __html: `
+      <script>{raw(`
         window._contentData = ${JSON.stringify(items)};
         function openCreateContentModal() { document.getElementById('createContentModal').classList.remove('hidden'); }
         function closeCreateContentModal() { document.getElementById('createContentModal').classList.add('hidden'); }
@@ -201,12 +195,29 @@ const ContentPage: FC<ContentPageProps> = ({ user, items }) => {
           document.getElementById('editContentBody').value = c.body;
           document.getElementById('editContentModal').classList.remove('hidden');
         }
-        function submitEditContent() {
-          var form = document.getElementById('editContentForm');
-          form.action = form.action.replace('{id}', document.getElementById('editContentId').value);
+        function submitEditContent(event) {
+          event.preventDefault();
+          var id = document.getElementById('editContentId').value;
+          var data = new FormData(document.getElementById('editContentForm'));
+          fetch('/content/' + id, { method: 'PUT', body: data }).then(function(r) {
+            if (r.redirected) {
+              showToast('success', 'Sukses', 'Konten berhasil diupdate');
+              setTimeout(function() { window.location.reload(); }, 800);
+            }
+          });
           closeEditContentModal();
+          return false;
         }
-      `}} />
+        function deleteContent(id) {
+          var c = window._contentData.find(function(x) { return x.id === id; });
+          var name = c ? c.title : '#' + id;
+          showConfirm('Hapus Konten', 'Yakin hapus konten "' + name + '"?', function() {
+            fetch('/content/' + id, { method: 'DELETE' }).then(function() {
+              window.location.reload();
+            });
+          });
+        }
+      `)}</script>
     </Layout>
   );
 };

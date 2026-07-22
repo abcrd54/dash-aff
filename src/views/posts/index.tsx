@@ -1,4 +1,5 @@
 import type { FC } from "hono/jsx";
+import { raw } from "hono/html";
 import Layout from "../../components/layout";
 import type { JWTPayload } from "../../middleware/auth";
 import type { Post } from "../../lib/db";
@@ -57,10 +58,7 @@ const PostsPage: FC<PostsPageProps> = ({ user, posts }) => {
                         Edit
                       </button>
                       <button
-                        hx-delete={`/posts/${p.id}`}
-                        hx-confirm={`Hapus post "${p.title}"?`}
-                        hx-target="body"
-                        hx-swap="outerHTML"
+                        onclick={`deletePost(${p.id})`}
                         class="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
                       >
                         Hapus
@@ -85,9 +83,8 @@ const PostsPage: FC<PostsPageProps> = ({ user, posts }) => {
         <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-4 sm:p-6" onclick="event.stopPropagation()">
           <h3 class="text-lg font-semibold text-slate-800 mb-4">Tambah Post Baru</h3>
           <form
-            hx-post="/posts"
-            hx-target="body"
-            hx-swap="outerHTML"
+            method="POST"
+            action="/posts"
             onsubmit="closeCreatePostModal()"
             class="space-y-4"
           >
@@ -151,10 +148,7 @@ const PostsPage: FC<PostsPageProps> = ({ user, posts }) => {
           <h3 class="text-lg font-semibold text-slate-800 mb-4">Edit Post</h3>
           <form
             id="editPostForm"
-            hx-put="/posts/{id}"
-            hx-target="body"
-            hx-swap="outerHTML"
-            onsubmit="submitEditPost()"
+            onsubmit="return submitEditPost(event)"
             class="space-y-4"
           >
             <input type="hidden" id="editPostId" />
@@ -216,7 +210,7 @@ const PostsPage: FC<PostsPageProps> = ({ user, posts }) => {
         </div>
       </div>
 
-      <script dangerouslySetInnerHTML={{ __html: `
+      <script>{raw(`
         window._postsData = ${JSON.stringify(posts)};
         function openCreatePostModal() { document.getElementById('createPostModal').classList.remove('hidden'); }
         function closeCreatePostModal() { document.getElementById('createPostModal').classList.add('hidden'); }
@@ -231,12 +225,29 @@ const PostsPage: FC<PostsPageProps> = ({ user, posts }) => {
           document.getElementById('editPostStatus').value = p.status;
           document.getElementById('editPostModal').classList.remove('hidden');
         }
-        function submitEditPost() {
-          var form = document.getElementById('editPostForm');
-          form.action = form.action.replace('{id}', document.getElementById('editPostId').value);
+        function submitEditPost(event) {
+          event.preventDefault();
+          var id = document.getElementById('editPostId').value;
+          var data = new FormData(document.getElementById('editPostForm'));
+          fetch('/posts/' + id, { method: 'PUT', body: data }).then(function(r) {
+            if (r.redirected) {
+              showToast('success', 'Sukses', 'Post berhasil diupdate');
+              setTimeout(function() { window.location.reload(); }, 800);
+            }
+          });
           closeEditPostModal();
+          return false;
         }
-      `}} />
+        function deletePost(id) {
+          var p = window._postsData.find(function(x) { return x.id === id; });
+          var name = p ? p.title : '#' + id;
+          showConfirm('Hapus Post', 'Yakin hapus post "' + name + '"?', function() {
+            fetch('/posts/' + id, { method: 'DELETE' }).then(function() {
+              window.location.reload();
+            });
+          });
+        }
+      `)}</script>
     </Layout>
   );
 };

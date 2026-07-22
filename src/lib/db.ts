@@ -229,95 +229,16 @@ export function deleteContent(id: number): boolean {
   return result.changes > 0;
 }
 
-// ==================== SERVICES ====================
-
-export interface Service {
-  id: number;
-  name: string;
-  slug: string;
-  base_url: string;
-  api_key: string;
-  is_active: number;
-  created_at: string;
-}
+// ==================== USER PERSONAS ====================
 
 export interface UserPersona {
   user_id: number;
   persona_id: string;
-  service_id: number;
+  service_slug: string;
   session_id: string | null;
   persona_name: string;
   created_at: string;
 }
-
-export function getAllServices(): Service[] {
-  return getDB().query("SELECT * FROM services ORDER BY id DESC").all() as Service[];
-}
-
-export function getServiceById(id: number): Service | undefined {
-  return getDB().query("SELECT * FROM services WHERE id = ?").get(id) as Service | undefined;
-}
-
-export function getServiceBySlug(slug: string): Service | undefined {
-  return getDB().query("SELECT * FROM services WHERE slug = ?").get(slug) as Service | undefined;
-}
-
-export function createService(name: string, slug: string, base_url: string, api_key: string): Service {
-  const result = getDB()
-    .query("INSERT INTO services (name, slug, base_url, api_key) VALUES (?, ?, ?, ?)")
-    .run(name, slug, base_url, api_key);
-  return getServiceById(Number(result.lastInsertRowid))!;
-}
-
-export function updateService(id: number, data: { name?: string; base_url?: string; api_key?: string; is_active?: number }): Service | undefined {
-  const sets: string[] = [];
-  const values: (string | number)[] = [];
-  if (data.name !== undefined) { sets.push("name = ?"); values.push(data.name); }
-  if (data.base_url !== undefined) { sets.push("base_url = ?"); values.push(data.base_url); }
-  if (data.api_key !== undefined) { sets.push("api_key = ?"); values.push(data.api_key); }
-  if (data.is_active !== undefined) { sets.push("is_active = ?"); values.push(data.is_active); }
-  if (sets.length === 0) return getServiceById(id);
-  values.push(id);
-  getDB().query(`UPDATE services SET ${sets.join(", ")} WHERE id = ?`).run(...values);
-  return getServiceById(id);
-}
-
-export function deleteService(id: number): boolean {
-  const result = getDB().query("DELETE FROM services WHERE id = ?").run(id);
-  return result.changes > 0;
-}
-
-// ==================== USER SERVICES ====================
-
-export function getUserServices(userId: number): number[] {
-  const rows = getDB()
-    .query("SELECT service_id FROM user_services WHERE user_id = ?")
-    .all(userId) as { service_id: number }[];
-  return rows.map(r => r.service_id);
-}
-
-export function getServicesForUser(userId: number): Service[] {
-  const ids = getUserServices(userId);
-  if (ids.length === 0) return [];
-  const placeholders = ids.map(() => "?").join(",");
-  return getDB()
-    .query(`SELECT * FROM services WHERE id IN (${placeholders}) AND is_active = 1 ORDER BY name ASC`)
-    .all(...ids) as Service[];
-}
-
-export function assignUserService(userId: number, serviceId: number): void {
-  getDB()
-    .query("INSERT OR IGNORE INTO user_services (user_id, service_id) VALUES (?, ?)")
-    .run(userId, serviceId);
-}
-
-export function removeUserService(userId: number, serviceId: number): void {
-  getDB()
-    .query("DELETE FROM user_services WHERE user_id = ? AND service_id = ?")
-    .run(userId, serviceId);
-}
-
-// ==================== USER PERSONAS ====================
 
 export function getUserPersonas(userId: number): UserPersona[] {
   return getDB()
@@ -331,10 +252,10 @@ export function getPersonaOwner(personaId: string): UserPersona | undefined {
     .get(personaId) as UserPersona | undefined;
 }
 
-export function linkUserPersona(userId: number, personaId: string, serviceId: number, personaName: string): void {
+export function linkUserPersona(userId: number, personaId: string, serviceSlug: string, personaName: string): void {
   getDB()
-    .query("INSERT INTO user_personas (user_id, persona_id, service_id, persona_name) VALUES (?, ?, ?, ?)")
-    .run(userId, personaId, serviceId, personaName);
+    .query("INSERT INTO user_personas (user_id, persona_id, service_slug, persona_name) VALUES (?, ?, ?, ?)")
+    .run(userId, personaId, serviceSlug, personaName);
 }
 
 export function updatePersonaSession(personaId: string, sessionId: string): void {
@@ -347,4 +268,91 @@ export function unlinkUserPersona(personaId: string): void {
   getDB()
     .query("DELETE FROM user_personas WHERE persona_id = ?")
     .run(personaId);
+}
+
+// ==================== AFFILIATE ACCOUNTS ====================
+
+export interface AffiliateAccount {
+  id: number;
+  user_id: number;
+  name: string;
+  email: string;
+  password_hash: string;
+  first_name: string;
+  last_name: string;
+  org_name: string;
+  org_id: string | null;
+  timezone: string;
+  access_token: string | null;
+  api_key: string | null;
+  api_key_id: string | null;
+  status: string;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function getAffiliateAccounts(userId: number): AffiliateAccount[] {
+  return getDB()
+    .query("SELECT * FROM affiliate_accounts WHERE user_id = ? ORDER BY id DESC")
+    .all(userId) as AffiliateAccount[];
+}
+
+export function getAffiliateAccountById(id: number): AffiliateAccount | undefined {
+  return getDB()
+    .query("SELECT * FROM affiliate_accounts WHERE id = ?")
+    .get(id) as AffiliateAccount | undefined;
+}
+
+export function createAffiliateAccount(data: {
+  user_id: number;
+  name: string;
+  email: string;
+  password_hash: string;
+  first_name: string;
+  last_name: string;
+  org_name: string;
+  timezone: string;
+}): AffiliateAccount {
+  const result = getDB()
+    .query(
+      "INSERT INTO affiliate_accounts (user_id, name, email, password_hash, first_name, last_name, org_name, timezone, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+    .run(data.user_id, data.name, data.email, data.password_hash, data.first_name, data.last_name, data.org_name, data.timezone, "pending");
+  return getAffiliateAccountById(Number(result.lastInsertRowid))!;
+}
+
+export function updateAffiliateAccount(id: number, data: {
+  status?: string;
+  error?: string;
+  org_id?: string;
+  access_token?: string;
+  api_key?: string;
+  api_key_id?: string;
+}): AffiliateAccount | undefined {
+  const sets: string[] = [];
+  const values: (string | number)[] = [];
+
+  if (data.status !== undefined) { sets.push("status = ?"); values.push(data.status); }
+  if (data.error !== undefined) { sets.push("error = ?"); values.push(data.error); }
+  if (data.org_id !== undefined) { sets.push("org_id = ?"); values.push(data.org_id); }
+  if (data.access_token !== undefined) { sets.push("access_token = ?"); values.push(data.access_token); }
+  if (data.api_key !== undefined) { sets.push("api_key = ?"); values.push(data.api_key); }
+  if (data.api_key_id !== undefined) { sets.push("api_key_id = ?"); values.push(data.api_key_id); }
+
+  if (sets.length === 0) return getAffiliateAccountById(id);
+
+  sets.push("updated_at = datetime('now')");
+  values.push(id);
+
+  getDB()
+    .query(`UPDATE affiliate_accounts SET ${sets.join(", ")} WHERE id = ?`)
+    .run(...values);
+
+  return getAffiliateAccountById(id);
+}
+
+export function deleteAffiliateAccount(id: number): boolean {
+  const result = getDB().query("DELETE FROM affiliate_accounts WHERE id = ?").run(id);
+  return result.changes > 0;
 }

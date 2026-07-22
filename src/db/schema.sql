@@ -27,26 +27,10 @@ CREATE TABLE IF NOT EXISTS content (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE TABLE IF NOT EXISTS services (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL UNIQUE,
-  slug TEXT NOT NULL UNIQUE,
-  base_url TEXT NOT NULL,
-  api_key TEXT NOT NULL,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS user_services (
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-  service_id INTEGER REFERENCES services(id) ON DELETE CASCADE,
-  UNIQUE(user_id, service_id)
-);
-
 CREATE TABLE IF NOT EXISTS user_personas (
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
   persona_id TEXT NOT NULL,
-  service_id INTEGER REFERENCES services(id) ON DELETE CASCADE,
+  service_slug TEXT NOT NULL,
   session_id TEXT,
   persona_name TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -54,5 +38,23 @@ CREATE TABLE IF NOT EXISTS user_personas (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_personas_user ON user_personas(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_personas_service ON user_personas(service_id);
-CREATE INDEX IF NOT EXISTS idx_user_services_user ON user_services(user_id);
+
+CREATE TABLE IF NOT EXISTS affiliate_accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  org_name TEXT NOT NULL,
+  org_id TEXT,
+  timezone TEXT NOT NULL DEFAULT 'Asia/Jakarta',
+  access_token TEXT,
+  api_key TEXT,
+  api_key_id TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  error TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

@@ -1,20 +1,21 @@
 import { Hono } from "hono";
 import { authMiddleware, getSession } from "../middleware/auth";
-import { getUserPersonas, linkUserPersona, unlinkUserPersona, getServicesForUser, getServiceBySlug } from "../lib/db";
+import { getUserPersonas, linkUserPersona, unlinkUserPersona } from "../lib/db";
 import { getServiceClient } from "../lib/proxy";
+import { getServiceBySlug, getServices } from "../lib/config";
 import PersonaListPage from "../views/personas/index";
 
 const personasRoutes = new Hono();
 
 personasRoutes.get("/personas", authMiddleware, async (c) => {
   const user = getSession(c)!;
-  const services = getServicesForUser(user.id);
+  const services = getServices();
 
   if (services.length === 0) {
-    return c.html(<PersonaListPage user={user} serviceName="No Service" personas={[]} error="No services assigned. Contact admin." />);
+    return c.html(<PersonaListPage user={user} serviceName="No Service" personas={[]} error="No services configured. Check .env" />);
   }
 
-  const serviceName = services[0].name;
+  const serviceName = services[0].slug;
   let personas: any[] = [];
   let error = "";
 
@@ -54,8 +55,7 @@ personasRoutes.post("/personas", authMiddleware, async (c) => {
     const aff = getServiceClient("aff-personal");
     const config: any = { type, name, traits: traits.length > 0 ? traits : ["umum"], backstory, tone, language };
     const created = await aff.postJSON<any>("/api/personas", config);
-    const service = getServiceBySlug("aff-personal")!;
-    linkUserPersona(user.id, created.id, service.id, name);
+    linkUserPersona(user.id, created.id, "aff-personal", name);
   } catch (e: any) {
     return c.html(<PersonaListPage user={user} serviceName="aff-personal" personas={[]} error={e.message} />);
   }
@@ -71,7 +71,6 @@ personasRoutes.post("/personas/:id/delete", authMiddleware, async (c) => {
     await aff.deleteJSON(`/api/personas/${personaId}`);
     deleted = true;
   } catch (e: any) {
-    // If 404, persona already gone — ok to clean up locally
     if (!e.message?.includes("404")) return c.redirect("/personas");
   }
 

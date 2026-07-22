@@ -7,9 +7,9 @@ import adminUserRoutes from "./routes/admin/users";
 import postRoutes from "./routes/posts";
 import contentRoutes from "./routes/content";
 import accountRoutes from "./routes/account";
-import servicesRoutes from "./routes/services";
 import personasRoutes from "./routes/personas";
 import chatRoutes from "./routes/persona-chat";
+import affiliateRoutes from "./routes/affiliate";
 
 initDB();
 await seedAdmin();
@@ -24,9 +24,9 @@ app.route("/", adminUserRoutes);
 app.route("/", postRoutes);
 app.route("/", contentRoutes);
 app.route("/", accountRoutes);
-app.route("/", servicesRoutes);
 app.route("/", personasRoutes);
 app.route("/", chatRoutes);
+app.route("/", affiliateRoutes);
 
 app.get("/", (c) => c.redirect("/login"));
 

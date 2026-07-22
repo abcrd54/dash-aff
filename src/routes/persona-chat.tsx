@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { authMiddleware, getSession } from "../middleware/auth";
-import { getPersonaOwner, getServiceBySlug } from "../lib/db";
+import { getPersonaOwner } from "../lib/db";
 import { getServiceClient } from "../lib/proxy";
+import { getServiceBySlug } from "../lib/config";
 import ChatPage from "../views/personas/chat";
 
 const chatRoutes = new Hono();
