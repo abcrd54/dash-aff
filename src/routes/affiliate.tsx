@@ -27,6 +27,9 @@ affiliateRoutes.get("/affiliate/create", authMiddleware, (c) => {
         <link rel="stylesheet" href="/css/main.css" />
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" />
         <script>{raw(`
+          function showToast(icon, title, text) {
+            Swal.fire({ icon: icon, title: title, text: text, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+          }
           async function startOnboarding() {
             var form = document.getElementById('onboardingForm');
             var data = new FormData(form);

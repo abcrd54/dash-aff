@@ -1,5 +1,3 @@
-import { getServiceBySlug } from "./config";
-
 export function getKumailConfig() {
   return {
     base_url: process.env.KUMAIL_URL || "http://localhost:3000",

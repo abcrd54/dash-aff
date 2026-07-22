@@ -78,7 +78,8 @@ const AffiliatePage: FC<AffiliatePageProps> = ({ user, accounts }) => {
                     {a.api_key ? (
                       <span
                         class="text-xs font-mono text-slate-500 cursor-pointer"
-                        onclick={`copyApiKey('${a.api_key.replace(/'/g, "\\'")}')`}
+                        data-key={a.api_key}
+                        onclick="copyApiKey(this.dataset.key)"
                         title="Click to copy"
                       >
                         {a.api_key.substring(0, 12)}...
@@ -90,7 +91,9 @@ const AffiliatePage: FC<AffiliatePageProps> = ({ user, accounts }) => {
                   <td class="px-6 py-4 text-slate-500 text-xs">{a.created_at}</td>
                   <td class="px-6 py-4 text-right">
                     <button
-                      onclick={`deleteAccount(${a.id},'${a.name.replace(/'/g, "\\'")}')`}
+                      data-id={a.id}
+                      data-name={a.name}
+                      onclick="deleteAccount(this.dataset.id, this.dataset.name)"
                       class="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
                     >
                       Hapus

@@ -15,7 +15,7 @@ interface OnboardingData {
 
 export async function* runOnboarding(data: OnboardingData): AsyncGenerator<{ step: string; status: string; detail?: string }> {
   let accountId: number | null = null;
-  const passwordHash = Bun.password.hash(data.password, "bcrypt");
+  const passwordHash = await Bun.password.hash(data.password, "bcrypt");
 
   try {
     // Step 1: Generate email

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { authMiddleware, getSession } from "../middleware/auth";
 import { getUserPersonas, linkUserPersona, unlinkUserPersona } from "../lib/db";
 import { getServiceClient } from "../lib/proxy";
-import { getServiceBySlug, getServices } from "../lib/config";
+import { getServices } from "../lib/config";
 import PersonaListPage from "../views/personas/index";
 
 const personasRoutes = new Hono();

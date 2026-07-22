@@ -47,7 +47,7 @@ export function getAllUsers(): User[] {
     .all() as User[];
 }
 
-export function createUser(username: string, passwordHash: string, role: string): User {
+export function createUser(username: string, passwordHash: string, role: "admin" | "user"): User {
   const result = getDB()
     .query("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)")
     .run(username, passwordHash, role);
@@ -115,7 +115,7 @@ export function createPost(
   title: string,
   slug: string,
   body: string,
-  status: string,
+  status: "draft" | "published",
   authorId: number
 ): Post {
   const result = getDB()
