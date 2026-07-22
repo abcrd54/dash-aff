@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { authMiddleware, getSession } from "../middleware/auth";
-import { getUserPersonas, linkUserPersona, unlinkUserPersona, getServicesForUser, getServiceBySlug, getServiceById } from "../lib/db";
+import { getUserPersonas, linkUserPersona, unlinkUserPersona, getServicesForUser, getServiceBySlug } from "../lib/db";
 import { getServiceClient } from "../lib/proxy";
 import PersonaListPage from "../views/personas/index";
 

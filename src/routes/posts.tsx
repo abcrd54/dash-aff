@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { authMiddleware, getSession } from "../middleware/auth";
-import { getPosts, createPost, updatePost, deletePost } from "../lib/db";
+import { getPosts, getPostById, createPost, updatePost, deletePost } from "../lib/db";
 import PostsPage from "../views/posts/index";
 
 function slugify(text: string): string {
