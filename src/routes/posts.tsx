@@ -4,11 +4,12 @@ import { getPosts, createPost, updatePost, deletePost } from "../lib/db";
 import PostsPage from "../views/posts/index";
 
 function slugify(text: string): string {
-  return text
+  const slug = text
     .toLowerCase()
     .replace(/[^\w\s-]/g, "")
     .replace(/[\s_]+/g, "-")
     .replace(/^-+|-+$/g, "");
+  return slug || "untitled-" + Date.now();
 }
 
 const postRoutes = new Hono();

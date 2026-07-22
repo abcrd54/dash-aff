@@ -16,9 +16,8 @@ adminUserRoutes.post("/admin/users", authMiddleware, adminMiddleware, async (c) 
   const body = await c.req.parseBody();
   const username = String(body.username || "").trim();
   const password = String(body.password || "");
-  const role = String(body.role || "user");
 
-  if (!username || !password) {
+  if (!username || !password || password.length < 6) {
     return c.redirect("/admin/users");
   }
 
@@ -27,8 +26,12 @@ adminUserRoutes.post("/admin/users", authMiddleware, adminMiddleware, async (c) 
     return c.redirect("/admin/users");
   }
 
-  const passwordHash = await Bun.password.hash(password, "bcrypt");
-  createUser(username, passwordHash, role);
+  try {
+    const passwordHash = await Bun.password.hash(password, "bcrypt");
+    createUser(username, passwordHash, "user");
+  } catch (e) {
+    return c.redirect("/admin/users");
+  }
 
   return c.redirect("/admin/users");
 });

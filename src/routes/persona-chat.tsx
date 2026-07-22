@@ -19,8 +19,9 @@ chatRoutes.get("/personas/:id/chat", authMiddleware, async (c) => {
     const aff = getServiceClient("aff-personal");
     const service = getServiceBySlug("aff-personal")!;
     const persona = await aff.getJSON<any>(`/api/personas/${personaId}`);
-
-    const wsUrl = `ws://${new URL(service.base_url).host}/api/chat/ws?personaId=${personaId}&api_key=${encodeURIComponent(service.api_key)}`;
+    const backendUrl = new URL(service.base_url);
+    const wsProtocol = backendUrl.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${wsProtocol}://${backendUrl.host}/api/chat/ws?personaId=${personaId}&api_key=${encodeURIComponent(service.api_key)}`;
 
     return c.html(<ChatPage
       user={user}

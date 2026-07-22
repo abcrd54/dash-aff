@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { authMiddleware, getSession } from "../middleware/auth";
-import { getUserPersonas, linkUserPersona, unlinkUserPersona, getServicesForUser } from "../lib/db";
+import { getUserPersonas, linkUserPersona, unlinkUserPersona, getServicesForUser, getServiceBySlug, getServiceById } from "../lib/db";
 import { getServiceClient } from "../lib/proxy";
 import PersonaListPage from "../views/personas/index";
 
@@ -9,20 +9,31 @@ const personasRoutes = new Hono();
 personasRoutes.get("/personas", authMiddleware, async (c) => {
   const user = getSession(c)!;
   const services = getServicesForUser(user.id);
-  const serviceName = services.length > 0 ? services[0].name : "No Service";
 
-  let personas: any[] = [];
-  try {
-    const aff = getServiceClient("aff-personal");
-    const allPersonas = await aff.getJSON<any[]>("/api/personas");
-    const userPersonas = getUserPersonas(user.id);
-    const ownedIds = new Set(userPersonas.map(p => p.persona_id));
-    personas = allPersonas.filter((p: any) => ownedIds.has(p.id));
-  } catch (e: any) {
-    return c.html(<PersonaListPage user={user} serviceName={serviceName} personas={[]} error={e.message} />);
+  if (services.length === 0) {
+    return c.html(<PersonaListPage user={user} serviceName="No Service" personas={[]} error="No services assigned. Contact admin." />);
   }
 
-  return c.html(<PersonaListPage user={user} serviceName={serviceName} personas={personas} />);
+  const serviceName = services[0].name;
+  let personas: any[] = [];
+  let error = "";
+
+  for (const svc of services) {
+    if (svc.slug === "aff-personal") {
+      try {
+        const aff = getServiceClient(svc.slug);
+        const allPersonas = await aff.getJSON<any[]>("/api/personas");
+        const userPersonas = getUserPersonas(user.id);
+        const ownedIds = new Set(userPersonas.map(p => p.persona_id));
+        const owned = allPersonas.filter((p: any) => ownedIds.has(p.id));
+        personas = personas.concat(owned);
+      } catch (e: any) {
+        error = e.message;
+      }
+    }
+  }
+
+  return c.html(<PersonaListPage user={user} serviceName={serviceName} personas={personas} error={error || undefined} />);
 });
 
 personasRoutes.post("/personas", authMiddleware, async (c) => {
@@ -43,7 +54,8 @@ personasRoutes.post("/personas", authMiddleware, async (c) => {
     const aff = getServiceClient("aff-personal");
     const config: any = { type, name, traits: traits.length > 0 ? traits : ["umum"], backstory, tone, language };
     const created = await aff.postJSON<any>("/api/personas", config);
-    linkUserPersona(user.id, created.id, await getAffServiceId(), name);
+    const service = getServiceBySlug("aff-personal")!;
+    linkUserPersona(user.id, created.id, service.id, name);
   } catch (e: any) {
     return c.html(<PersonaListPage user={user} serviceName="aff-personal" personas={[]} error={e.message} />);
   }
@@ -53,20 +65,23 @@ personasRoutes.post("/personas", authMiddleware, async (c) => {
 
 personasRoutes.post("/personas/:id/delete", authMiddleware, async (c) => {
   const personaId = c.req.param("id");
+  let deleted = false;
   try {
     const aff = getServiceClient("aff-personal");
     await aff.deleteJSON(`/api/personas/${personaId}`);
-    unlinkUserPersona(personaId);
+    deleted = true;
   } catch (e: any) {
-    // Persona already deleted from backend — clean up locally
+    // If 404, persona already gone — ok to clean up locally
+    if (!e.message?.includes("404")) return c.redirect("/personas");
+  }
+
+  if (deleted) {
+    unlinkUserPersona(personaId);
+  } else {
     unlinkUserPersona(personaId);
   }
+
   return c.redirect("/personas");
 });
-
-async function getAffServiceId(): Promise<number> {
-  const { getServiceBySlug } = await import("../lib/db");
-  return getServiceBySlug("aff-personal")!.id;
-}
 
 export default personasRoutes;

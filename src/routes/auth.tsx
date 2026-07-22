@@ -32,7 +32,7 @@ authRoutes.post("/login", async (c) => {
 
   setCookie(c, "session", token, {
     httpOnly: true,
-    secure: false,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "Lax",
     path: "/",
     maxAge: 86400,
@@ -42,7 +42,12 @@ authRoutes.post("/login", async (c) => {
 });
 
 authRoutes.get("/logout", (c) => {
-  deleteCookie(c, "session", { path: "/" });
+  deleteCookie(c, "session", {
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    httpOnly: true,
+  });
   return c.redirect("/login");
 });
 

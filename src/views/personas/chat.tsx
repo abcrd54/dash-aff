@@ -52,10 +52,18 @@ const ChatPage: FC<ChatPageProps> = ({ user, personaId, personaName, persona, ws
         const WS_URL = "${wsUrl}";
         let ws = null;
         let isStreaming = false;
+        let pendingMessages = [];
+        let reconnectTimer = null;
 
         function connectWS() {
+          if (ws && ws.readyState === WebSocket.OPEN) return;
           ws = new WebSocket(WS_URL);
-          ws.onopen = () => { console.log("WS connected"); };
+          ws.onopen = () => {
+            console.log("WS connected");
+            while (pendingMessages.length > 0) {
+              ws.send(JSON.stringify(pendingMessages.shift()));
+            }
+          };
           ws.onmessage = (ev) => {
             try {
               const d = JSON.parse(ev.data);
@@ -74,13 +82,27 @@ const ChatPage: FC<ChatPageProps> = ({ user, personaId, personaName, persona, ws
               } else if (d.type === "error") {
                 isStreaming = false;
                 document.getElementById("send-btn").disabled = false;
-                appendBubble("bot", "Error: " + d.message, true);
+                appendBubble("bot", d.message, true);
               }
               el.scrollTop = el.scrollHeight;
-            } catch {}
+            } catch(e) {
+              console.error("WS parse error:", e);
+            }
           };
-          ws.onclose = () => { ws = null; isStreaming = false; };
-          ws.onerror = () => { isStreaming = false; document.getElementById("send-btn").disabled = false; };
+          ws.onclose = () => {
+            ws = null;
+            isStreaming = false;
+            document.getElementById("send-btn").disabled = false;
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+            reconnectTimer = setTimeout(connectWS, 3000);
+          };
+          ws.onerror = () => {
+            isStreaming = false;
+            document.getElementById("send-btn").disabled = false;
+            if (!document.querySelector(".bot-msg .content")?.textContent?.includes("WebSocket error")) {
+              appendBubble("bot", "Connection lost. Reconnecting...", true);
+            }
+          };
         }
 
         function appendBubble(role, content, isError) {
@@ -91,7 +113,6 @@ const ChatPage: FC<ChatPageProps> = ({ user, personaId, personaName, persona, ws
             (role === "user" ? "bg-blue-600 text-white" : (isError ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-800")) +
             '"><span class="content whitespace-pre-wrap">' + esc(content) + '</span></div>';
           el.appendChild(div);
-          el.scrollTop = el.scrollHeight;
         }
 
         function sendMessage() {
@@ -105,8 +126,8 @@ const ChatPage: FC<ChatPageProps> = ({ user, personaId, personaName, persona, ws
           document.getElementById("send-btn").disabled = true;
 
           if (!ws || ws.readyState !== WebSocket.OPEN) {
+            pendingMessages.push({ message: msg });
             connectWS();
-            ws.onopen = () => { ws.send(JSON.stringify({ message: msg })); };
           } else {
             ws.send(JSON.stringify({ message: msg }));
           }

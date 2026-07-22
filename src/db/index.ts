@@ -35,5 +35,5 @@ export async function seedAdmin(): Promise<void> {
     .query("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)")
     .run("admin", passwordHash, "admin");
 
-  console.log("✅ Admin user seeded: admin / admin123");
+  console.log("✅ Admin user seeded: admin (change password on first login)");
 }

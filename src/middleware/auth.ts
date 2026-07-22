@@ -1,7 +1,10 @@
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { Context, Next } from "hono";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dam-secret-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET environment variable is required");
+}
 
 export interface JWTPayload {
   id: number;
